@@ -1,11 +1,11 @@
-#ifndef _MA_ENGINE_HALIO_H_
-#define _MA_ENGINE_HALIO_H_
+#ifndef _MA_ENGINE_HAILO_H_
+#define _MA_ENGINE_HAILO_H_
 
 #include "../ma_common.h"
 
-#if MA_USE_ENGINE_HALIO
+#if MA_USE_ENGINE_HAILO
 
-#include "ma_engine.h"
+#include "ma_engine_base.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -21,12 +21,12 @@ namespace ma::engine {
 using namespace std;
 using namespace hailort;
 
-class EngineHalio final : public Engine {
+class EngineHailo final : public Engine {
 public:
     using ExternalHandler = function<ma_err_t(int, void*, size_t)>;
 
-    EngineHalio();
-    ~EngineHalio() override;
+    EngineHailo();
+    ~EngineHailo() override;
 
     ma_err_t init() override;
     ma_err_t init(size_t size) override;
@@ -52,7 +52,7 @@ public:
     ma_err_t setInput(int32_t index, const ma_tensor_t& tensor) override;
 
 private:
-    unique_ptr<VDevice> _vdevice;
+    shared_ptr<VDevice> _vdevice;
     shared_ptr<InferModel> _model;
     shared_ptr<ConfiguredInferModel> _configured_model;
     shared_ptr<ConfiguredInferModel::Bindings> _bindings;
