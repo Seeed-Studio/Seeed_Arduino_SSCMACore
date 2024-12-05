@@ -1,7 +1,8 @@
-#include "ma_engine_halio.h"
+#include "ma_engine_hailo.h"
 
-#if MA_USE_ENGINE_HALIO
+#if MA_USE_ENGINE_HAILO
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
@@ -11,33 +12,57 @@ namespace ma::engine {
 
 using namespace std;
 
-EngineHalio::EngineHalio() : _vdevice(nullptr), _model(nullptr), _configured_model(nullptr), _bindings(nullptr) {}
+EngineHailo::EngineHailo() : _vdevice(nullptr), _model(nullptr), _configured_model(nullptr), _bindings(nullptr) {}
 
-EngineHalio::~EngineHalio() {}
+EngineHailo::~EngineHailo() {}
 
-ma_err_t EngineHalio::init() {
+ma_err_t EngineHailo::init() {
     if (_vdevice) {
         return MA_OK;
     }
 
-    auto vdevice = VDevice::create();
-    if (!vdevice) {
+    // TODO: optimize
+    static auto get_vdevice_f = []() -> shared_ptr<VDevice> {
+        static unique_ptr<VDevice> vdevice = nullptr;
+        if (!vdevice) {
+            auto dev = VDevice::create();
+            if (!dev) {
+                return nullptr;
+            }
+            vdevice = move(dev.release());
+        }
+        if (!vdevice) {
+            return nullptr;
+        }
+        auto shared = vdevice.get();
+        auto mgr = &vdevice;
+        static atomic<size_t> ref_count = 0;
+        ref_count.fetch_add(1);
+        return shared_ptr<VDevice>(shared, [mgr](VDevice*) {
+            if (mgr) {
+                if (ref_count.fetch_sub(1) == 1) {
+                    mgr->reset();
+                }
+            }
+        });
+    };
+    _vdevice = get_vdevice_f();
+    if (!_vdevice) {
         return MA_FAILED;
     }
-    _vdevice = move(vdevice.value());
 
     return MA_OK;
 }
 
-ma_err_t EngineHalio::init(size_t size) {
+ma_err_t EngineHailo::init(size_t size) {
     return init();
 }
 
-ma_err_t EngineHalio::init(void* pool, size_t size) {
+ma_err_t EngineHailo::init(void* pool, size_t size) {
     return init();
 }
 
-ma_err_t EngineHalio::run() {
+ma_err_t EngineHailo::run() {
     if (!_configured_model || !_bindings) {
         return MA_FAILED;
     }
@@ -65,7 +90,7 @@ ma_err_t EngineHalio::run() {
 }
 
 #if MA_USE_FILESYSTEM
-ma_err_t EngineHalio::load(const string& model_path) {
+ma_err_t EngineHailo::load(const string& model_path) {
 
     {
         _input_tensors.clear();
@@ -324,12 +349,12 @@ ma_err_t EngineHalio::load(const string& model_path) {
     return MA_OK;
 }
 
-ma_err_t EngineHalio::load(const char* model_path) {
+ma_err_t EngineHailo::load(const char* model_path) {
     return load(string(model_path));
 }
 #endif
 
-ma_err_t EngineHalio::load(const void* model_data, size_t model_size) {
+ma_err_t EngineHailo::load(const void* model_data, size_t model_size) {
 #if MA_USE_FILESYSTEM
     string model_path(reinterpret_cast<const char*>(model_data), model_size);
     return load(model_path);
@@ -338,15 +363,15 @@ ma_err_t EngineHalio::load(const void* model_data, size_t model_size) {
 #endif
 }
 
-int32_t EngineHalio::getInputSize() {
+int32_t EngineHailo::getInputSize() {
     return _input_tensors.size();
 }
 
-int32_t EngineHalio::getOutputSize() {
+int32_t EngineHailo::getOutputSize() {
     return _output_tensors.size();
 }
 
-ma_tensor_t EngineHalio::getInput(int32_t index) {
+ma_tensor_t EngineHailo::getInput(int32_t index) {
     if (index < 0 || index >= static_cast<int32_t>(_input_tensors.size())) {
         return {0};
     }
@@ -354,7 +379,7 @@ ma_tensor_t EngineHalio::getInput(int32_t index) {
     return _input_tensors[index] ? *_input_tensors[index] : ma_tensor_t{0};
 }
 
-ma_tensor_t EngineHalio::getOutput(int32_t index) {
+ma_tensor_t EngineHailo::getOutput(int32_t index) {
     if (index < 0 || index >= static_cast<int32_t>(_output_tensors.size())) {
         return {0};
     }
@@ -362,7 +387,7 @@ ma_tensor_t EngineHalio::getOutput(int32_t index) {
     return _output_tensors[index] ? *_output_tensors[index] : ma_tensor_t{0};
 }
 
-ma_shape_t EngineHalio::getInputShape(int32_t index) {
+ma_shape_t EngineHailo::getInputShape(int32_t index) {
     if (index < 0 || index >= static_cast<int32_t>(_input_tensors.size())) {
         return {0};
     }
@@ -370,7 +395,7 @@ ma_shape_t EngineHalio::getInputShape(int32_t index) {
     return _input_tensors[index] ? _input_tensors[index]->shape : ma_shape_t{0};
 }
 
-ma_shape_t EngineHalio::getOutputShape(int32_t index) {
+ma_shape_t EngineHailo::getOutputShape(int32_t index) {
     if (index < 0 || index >= static_cast<int32_t>(_output_tensors.size())) {
         return {0};
     }
@@ -378,7 +403,7 @@ ma_shape_t EngineHalio::getOutputShape(int32_t index) {
     return _output_tensors[index] ? _output_tensors[index]->shape : ma_shape_t{0};
 }
 
-ma_quant_param_t EngineHalio::getInputQuantParam(int32_t index) {
+ma_quant_param_t EngineHailo::getInputQuantParam(int32_t index) {
     if (index < 0 || index >= static_cast<int32_t>(_input_tensors.size())) {
         return {0};
     }
@@ -386,7 +411,7 @@ ma_quant_param_t EngineHalio::getInputQuantParam(int32_t index) {
     return _input_tensors[index] ? _input_tensors[index]->quant_param : ma_quant_param_t{0};
 }
 
-ma_quant_param_t EngineHalio::getOutputQuantParam(int32_t index) {
+ma_quant_param_t EngineHailo::getOutputQuantParam(int32_t index) {
     if (index < 0 || index >= static_cast<int32_t>(_output_tensors.size())) {
         return {0};
     }
@@ -395,7 +420,17 @@ ma_quant_param_t EngineHalio::getOutputQuantParam(int32_t index) {
 }
 
 
-ma_err_t EngineHalio::setInput(int32_t index, const ma_tensor_t& tensor) {
+ma_err_t EngineHailo::setInput(int32_t index, const ma_tensor_t& tensor) {
+    if (index < 0 || index >= static_cast<int32_t>(_input_tensors.size())) {
+        return MA_EINVAL;
+    }
+
+    if (tensor.size != _input_tensors[index]->size) {
+        return MA_EINVAL;
+    }
+
+    std::memcpy(_input_tensors[index]->data.data, tensor.data.data, tensor.size);
+
     return MA_ENOTSUP;
 }
 

@@ -30,12 +30,17 @@ PointDetector::PointDetector(Engine* p_engine, const char* name, ma_model_type_t
 
 PointDetector::~PointDetector() {}
 
-const std::vector<ma_point_t>& PointDetector::getResults() const {
+const std::forward_list<ma_point_t>& PointDetector::getResults() const {
     return results_;
 }
 
 ma_err_t PointDetector::preprocess() {
     ma_err_t ret = MA_OK;
+
+
+    if (input_img_ == nullptr) {
+        return MA_OK;
+    }
 
     ret = ma::cv::convert(input_img_, &img_);
     if (ret != MA_OK) {
@@ -51,7 +56,6 @@ ma_err_t PointDetector::preprocess() {
 }
 
 ma_err_t PointDetector::run(const ma_img_t* img) {
-    MA_ASSERT(img != nullptr);
 
     input_img_ = img;
 
