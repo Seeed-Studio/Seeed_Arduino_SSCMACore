@@ -345,9 +345,8 @@ SSCMAMicroCore::Expected SSCMAMicroCore::invoke(const Frame& frame, const Invoke
             }
             auto results = algorithm->getResults();
             if (_config.invoke_config && _config.invoke_config->top_k > 0) {
-                std::sort(results.begin(), results.end(), [](const ma_point_t& a, const ma_point_t& b) { return a.score > b.score; });
-                results.resize(std::min(results.size(), static_cast<size_t>(_config.invoke_config->top_k)));
-                results.shrink_to_fit();
+                results.sort([](const ma_point_t& a, const ma_point_t& b) { return a.score < b.score; });
+                results.resize(_config.invoke_config->top_k);
             }
             std::vector<SSCMAMicroCore::Point> points;
             for (const auto& result : results) {
