@@ -42,10 +42,9 @@ jobs:
           echo "##[set-output name=changes;]false"
         fi
         
-    - name: Push changes and create PR
+    - name: Push changes
       if: steps.check-for-changes.outputs.changes == 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         git push --set-upstream origin update-branch -f
-        gh pr create --title "bot: fetch update components" --body "This PR was created automatically by GitHub Actions." --base main --head update-branch
