@@ -97,7 +97,7 @@ typedef struct {
     } data;
     bool is_physical;  // For physical tensor
     bool is_variable;  // For constant tensor
-    void* external_handler = nullptr;
+    void* external_handler;
 } ma_tensor_t;
 
 typedef enum {
@@ -241,7 +241,8 @@ typedef enum {
     MA_TRANSPORT_MQTT    = 5,
     MA_TRANSPORT_TCP     = 6,
     MA_TRANSPORT_UDP     = 7,
-    MA_TRANSPORT_RTSP    = 8
+    MA_TRANSPORT_RTSP    = 8,
+    MA_TRANSPORT_WS     = 9
 } ma_transport_type_t;
 
 typedef enum {
@@ -283,7 +284,9 @@ typedef enum {
     MA_MODEL_TYPE_YOLO_WORLD  = 8u,
     MA_MODEL_TYPE_YOLO11      = 9u,
     MA_MODEL_TYPE_YOLO11_POSE = 10u,
-    MA_MODEL_TYPE_YOLO11_SEG = 11u,
+    MA_MODEL_TYPE_YOLO11_SEG  = 11u,
+    MA_MODEL_TYPE_YOLOV8_SGE  = 12u,
+    MA_MODEL_TYPE_RTMDET      = 13u
 } ma_model_type_t;
 
 typedef struct {
